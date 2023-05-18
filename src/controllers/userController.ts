@@ -10,6 +10,10 @@ export const userCtrl = {
       password,
     }: { email: string; username: string; password: string } = req.body;
 
+    if (password.length < 6) {
+      return res.status(400).json({ err: "Password is too short" });
+    }
+
     const emailTest = await prisma.user.findFirst({
       where: {
         email: email,
@@ -39,5 +43,36 @@ export const userCtrl = {
     });
 
     res.json({ msg: "Registered", user });
+  },
+  login: async (req: Request, res: Response) => {
+    const { username, password }: { username: string; password: string } =
+      req.body;
+
+    if (password.length < 6) {
+      return res.status(400).json({ err: "Password is too short" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        username: username,
+      },
+    });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ err: "User with this username was not found" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ err: "Incorrect password" });
+    }
+
+    res.json({ msg: "Logged in", user });
+  },
+  getUsers: async (req: Request, res: Response) => {
+    const users = await prisma.user.findMany();
+
+    res.json({ msg: "Heres a list of users", users });
   },
 };
