@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import bcrypt from "bcrypt";
+import { createRefreshToken } from "../utils/generateToken";
 
 export const userCtrl = {
   register: async (req: Request, res: Response) => {
@@ -42,6 +43,15 @@ export const userCtrl = {
       },
     });
 
+    const refreshToken = createRefreshToken({ id: user.id });
+
+    res.cookie("token", refreshToken, {
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: false,
+      secure: false
+    });
+
     res.json({ msg: "Registered", user });
   },
   login: async (req: Request, res: Response) => {
@@ -67,6 +77,15 @@ export const userCtrl = {
     if (!isMatch) {
       return res.status(400).json({ err: "Incorrect password" });
     }
+
+    const refreshToken = createRefreshToken({ id: user.id });
+
+    res.cookie("token", refreshToken, {
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: false,
+      secure: false
+    });
 
     res.json({ msg: "Logged in", user });
   },
