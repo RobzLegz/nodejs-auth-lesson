@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import bcrypt from "bcrypt";
 import { createRefreshToken } from "../utils/generateToken";
+import jwt from "jsonwebtoken";
 
 export const userCtrl = {
   register: async (req: Request, res: Response) => {
@@ -48,8 +49,6 @@ export const userCtrl = {
     res.cookie("token", refreshToken, {
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: false,
-      secure: false
     });
 
     res.json({ msg: "Registered", user });
@@ -83,11 +82,33 @@ export const userCtrl = {
     res.cookie("token", refreshToken, {
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: false,
-      secure: false
     });
 
     res.json({ msg: "Logged in", user });
+  },
+  getUserInfo: async (req: Request, res: Response) => {
+    const token = req.headers.cookie?.replace("token=", "");
+    if (!token) {
+      return res.status(400).json({ err: "Invalid authorization" });
+    }
+
+    const rfTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+    if (!rfTokenSecret) {
+      return res.status(500).json({ err: "Something went wrong :(" });
+    }
+
+    const decoded: any = jwt.verify(token, rfTokenSecret);
+    if (!decoded || !decoded.id) {
+      return res.status(400).json({ err: "Invalid authorization" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        id: decoded.id,
+      },
+    });
+
+    res.json({ msg: "ok", user });
   },
   getUsers: async (req: Request, res: Response) => {
     const users = await prisma.user.findMany();

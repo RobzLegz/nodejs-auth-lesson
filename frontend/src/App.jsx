@@ -1,25 +1,68 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import "./App.css";
+
+const REGISTER_ROUTE = "http://localhost:5000/api/user/register";
+const LOGIN_ROUTE = "http://localhost:5000/api/user/login";
+const USER_INFO_ROUTE = "http://localhost:5000/api/user/info";
 
 function App() {
   const [registering, setRegistering] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const clickButton = (e) => {
+  useEffect(() => {
+    axios
+      .get(USER_INFO_ROUTE, { withCredentials: true })
+      .then((res) => {
+        const { user } = res.data;
+        setUser(user);
+      })
+      .catch((err) => {
+        alert(err?.response?.data?.err);
+      });
+  }, []);
+
+  const clickButton = async (e) => {
     e.preventDefault();
 
-    alert(username);
-    alert(password);
+    if (registering) {
+      await axios
+        .post(
+          REGISTER_ROUTE,
+          { email, username, password },
+          { withCredentials: true }
+        )
+        .then((res) => {
+          const { user } = res.data;
+          setUser(user);
+        })
+        .catch((err) => {
+          alert(err?.response?.data?.err);
+        });
+    } else {
+      await axios
+        .post(LOGIN_ROUTE, { username, password }, { withCredentials: true })
+        .then((res) => {
+          const { user } = res.data;
+          setUser(user);
+        })
+        .catch((err) => {
+          alert(err?.response?.data?.err);
+        });
+    }
   };
 
   return (
     <div className="container">
-      {loggedIn === true ? (
-        <div></div>
+      {user ? (
+        <div>
+          <h1>Welcome {user.username}!</h1>
+          <p>{user.email}</p>
+        </div>
       ) : (
         <form onSubmit={clickButton}>
           {registering ? (
